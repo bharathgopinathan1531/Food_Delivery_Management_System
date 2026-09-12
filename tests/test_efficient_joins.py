@@ -1,10 +1,42 @@
 from sqlalchemy import select
 
-from app.database import SessionLocal
+from app.database import Base, SessionLocal
+
+# Import all models so SQLAlchemy registers every table
+# and foreign-key dependency before create_all().
+from app.models import (
+    User,
+    Restaurant,
+    MenuItem,
+    RestaurantStaff,
+    Customer,
+    Address,
+    Cart,
+    CartItem,
+    Coupon,
+    CouponUsage,
+    Order,
+    OrderItem,
+    DeliveryPartner,
+    OrderTracking,
+    Payment,
+    CancellationHistory,
+    Refund,
+    Review,
+)
+
 from app.models.order import Order
 from app.models.customer import Customer
 from app.models.restaurant import Restaurant
 from app.models.delivery_partner import DeliveryPartner
+
+
+def prepare_database(db):
+    """
+    Create all application tables required by the test.
+    This makes the test reliable in a fresh CI database.
+    """
+    Base.metadata.create_all(bind=db.bind)
 
 
 def test_order_customer_restaurant_join():
@@ -16,6 +48,8 @@ def test_order_customer_restaurant_join():
     db = SessionLocal()
 
     try:
+        prepare_database(db)
+
         statement = (
             select(
                 Order,
@@ -50,6 +84,8 @@ def test_order_delivery_partner_join():
     db = SessionLocal()
 
     try:
+        prepare_database(db)
+
         statement = (
             select(
                 Order,

@@ -14,6 +14,11 @@ from app.models.customer import Customer, Address
 from app.models.restaurant import Restaurant, RestaurantStatus
 from app.models.order import Order, OrderStatus, PaymentStatus
 from app.models.review import Review
+from app.models.menu import MenuItem, SpicyLevel
+from app.models.delivery_partner import (
+    DeliveryPartner,
+    DeliveryPartnerStatus,
+)
 
 
 @pytest.fixture()
@@ -180,6 +185,84 @@ def restaurant(db):
     return restaurant
 
 
+@pytest.fixture()
+def menu_item(db, restaurant):
+    item = MenuItem(
+        restaurant_id=restaurant.id,
+        category="Main Course",
+        name="Test Food",
+        description="Test food item",
+        price=250.0,
+        preparation_time=20,
+        availability=True,
+        vegetarian=True,
+        spicy_level=SpicyLevel.MILD,
+    )
+
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@pytest.fixture()
+def second_menu_item(db, restaurant):
+    item = MenuItem(
+        restaurant_id=restaurant.id,
+        category="Main Course",
+        name="Second Test Food",
+        description="Second test food item",
+        price=300.0,
+        preparation_time=25,
+        availability=True,
+        vegetarian=True,
+        spicy_level=SpicyLevel.MEDIUM,
+    )
+
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@pytest.fixture()
+def delivery_partner(db):
+    partner = DeliveryPartner(
+        name="Test Delivery Partner",
+        phone="9000000099",
+        vehicle_type="Bike",
+        vehicle_number="TN99AB9999",
+        availability_status=DeliveryPartnerStatus.AVAILABLE,
+        current_location="Chennai",
+    )
+
+    db.add(partner)
+    db.commit()
+    db.refresh(partner)
+
+    return partner
+
+
+@pytest.fixture()
+def second_delivery_partner(db):
+    partner = DeliveryPartner(
+        name="Second Delivery Partner",
+        phone="9000000098",
+        vehicle_type="Bike",
+        vehicle_number="TN99AB9998",
+        availability_status=DeliveryPartnerStatus.AVAILABLE,
+        current_location="Chennai",
+    )
+
+    db.add(partner)
+    db.commit()
+    db.refresh(partner)
+
+    return partner
+
+
 def create_order(
     db,
     customer,
@@ -322,6 +405,7 @@ def test_create_food_item_review(
     delivered_order,
     customer,
     restaurant,
+    menu_item,
 ):
     response = client.post(
         "/reviews",
@@ -331,7 +415,7 @@ def test_create_food_item_review(
             restaurant.id,
             rating=4,
             review="Good food",
-            food_item_id=1,
+            food_item_id=menu_item.id,
         ),
     )
 
@@ -339,7 +423,7 @@ def test_create_food_item_review(
 
     data = response.json()
 
-    assert data["food_item_id"] == 1
+    assert data["food_item_id"] == menu_item.id
     assert data["delivery_partner_id"] is None
     assert data["rating"] == 4
 
@@ -349,6 +433,7 @@ def test_create_delivery_partner_review(
     delivered_order,
     customer,
     restaurant,
+    delivery_partner,
 ):
     response = client.post(
         "/reviews",
@@ -358,7 +443,7 @@ def test_create_delivery_partner_review(
             restaurant.id,
             rating=4,
             review="Fast delivery",
-            delivery_partner_id=1,
+            delivery_partner_id=delivery_partner.id,
         ),
     )
 
@@ -366,7 +451,7 @@ def test_create_delivery_partner_review(
 
     data = response.json()
 
-    assert data["delivery_partner_id"] == 1
+    assert data["delivery_partner_id"] == delivery_partner.id
     assert data["food_item_id"] is None
     assert data["rating"] == 4
 
@@ -526,6 +611,7 @@ def test_duplicate_food_item_review_rejected(
     delivered_order,
     customer,
     restaurant,
+    menu_item,
 ):
     first = client.post(
         "/reviews",
@@ -533,7 +619,7 @@ def test_duplicate_food_item_review_rejected(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=1,
+            food_item_id=menu_item.id,
             review="First food review",
         ),
     )
@@ -546,7 +632,7 @@ def test_duplicate_food_item_review_rejected(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=1,
+            food_item_id=menu_item.id,
             review="Second food review",
         ),
     )
@@ -564,6 +650,8 @@ def test_same_order_can_review_different_food_items(
     delivered_order,
     customer,
     restaurant,
+    menu_item,
+    second_menu_item,
 ):
     first = client.post(
         "/reviews",
@@ -571,7 +659,7 @@ def test_same_order_can_review_different_food_items(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=1,
+            food_item_id=menu_item.id,
             review="Food item one",
         ),
     )
@@ -582,7 +670,7 @@ def test_same_order_can_review_different_food_items(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=2,
+            food_item_id=second_menu_item.id,
             review="Food item two",
         ),
     )
@@ -590,8 +678,8 @@ def test_same_order_can_review_different_food_items(
     assert first.status_code == 201
     assert second.status_code == 201
 
-    assert first.json()["food_item_id"] == 1
-    assert second.json()["food_item_id"] == 2
+    assert first.json()["food_item_id"] == menu_item.id
+    assert second.json()["food_item_id"] == second_menu_item.id
 
 
 def test_duplicate_delivery_partner_review_rejected(
@@ -599,6 +687,7 @@ def test_duplicate_delivery_partner_review_rejected(
     delivered_order,
     customer,
     restaurant,
+    delivery_partner,
 ):
     first = client.post(
         "/reviews",
@@ -606,7 +695,7 @@ def test_duplicate_delivery_partner_review_rejected(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            delivery_partner_id=1,
+            delivery_partner_id=delivery_partner.id,
             review="Fast delivery",
         ),
     )
@@ -619,7 +708,7 @@ def test_duplicate_delivery_partner_review_rejected(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            delivery_partner_id=1,
+            delivery_partner_id=delivery_partner.id,
             review="Another delivery review",
         ),
     )
@@ -637,6 +726,8 @@ def test_same_order_can_review_different_delivery_partners(
     delivered_order,
     customer,
     restaurant,
+    delivery_partner,
+    second_delivery_partner,
 ):
     first = client.post(
         "/reviews",
@@ -644,7 +735,7 @@ def test_same_order_can_review_different_delivery_partners(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            delivery_partner_id=1,
+            delivery_partner_id=delivery_partner.id,
         ),
     )
 
@@ -654,7 +745,7 @@ def test_same_order_can_review_different_delivery_partners(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            delivery_partner_id=2,
+            delivery_partner_id=second_delivery_partner.id,
         ),
     )
 
@@ -793,6 +884,7 @@ def test_get_food_item_reviews(
     delivered_order,
     customer,
     restaurant,
+    menu_item,
 ):
     first = client.post(
         "/reviews",
@@ -802,14 +894,14 @@ def test_get_food_item_reviews(
             restaurant.id,
             rating=4,
             review="Tasty food",
-            food_item_id=1,
+            food_item_id=menu_item.id,
         ),
     )
 
     assert first.status_code == 201
 
     response = client.get(
-        "/reviews/food-items/1"
+        f"/reviews/food-items/{menu_item.id}"
     )
 
     assert response.status_code == 200
@@ -817,7 +909,7 @@ def test_get_food_item_reviews(
     data = response.json()
 
     assert len(data) == 1
-    assert data[0]["food_item_id"] == 1
+    assert data[0]["food_item_id"] == menu_item.id
     assert data[0]["rating"] == 4
     assert data[0]["review"] == "Tasty food"
 
@@ -840,6 +932,8 @@ def test_multiple_reviews_are_saved(
     delivered_order,
     customer,
     restaurant,
+    menu_item,
+    second_menu_item,
 ):
     first = client.post(
         "/reviews",
@@ -847,7 +941,7 @@ def test_multiple_reviews_are_saved(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=1,
+            food_item_id=menu_item.id,
             rating=5,
             review="Excellent",
         ),
@@ -859,7 +953,7 @@ def test_multiple_reviews_are_saved(
             customer.id,
             delivered_order.id,
             restaurant.id,
-            food_item_id=2,
+            food_item_id=second_menu_item.id,
             rating=4,
             review="Very good",
         ),

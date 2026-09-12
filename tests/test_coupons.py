@@ -12,6 +12,10 @@ from app.models.user import User
 from app.models.customer import Customer
 
 
+# ============================================================
+# TEST DATABASE
+# ============================================================
+
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 
 engine = create_engine(
@@ -20,12 +24,17 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 
+
 TestingSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
 
+
+# ============================================================
+# DATABASE OVERRIDE
+# ============================================================
 
 def override_get_db():
     db = TestingSessionLocal()
@@ -39,6 +48,10 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
+# ============================================================
+# CLIENT FIXTURE
+# ============================================================
+
 @pytest.fixture
 def client():
     Base.metadata.create_all(bind=engine)
@@ -48,6 +61,10 @@ def client():
 
     Base.metadata.drop_all(bind=engine)
 
+
+# ============================================================
+# USER FIXTURE
+# ============================================================
 
 @pytest.fixture
 def user():
@@ -72,6 +89,10 @@ def user():
     return user
 
 
+# ============================================================
+# CUSTOMER FIXTURE
+# ============================================================
+
 @pytest.fixture
 def customer(user):
     db = TestingSessionLocal()
@@ -92,6 +113,10 @@ def customer(user):
     return customer
 
 
+# ============================================================
+# ACTIVE COUPON PAYLOAD
+# ============================================================
+
 @pytest.fixture
 def active_coupon_payload():
     now = datetime.now(timezone.utc)
@@ -108,6 +133,11 @@ def active_coupon_payload():
         "status": "Active",
     }
 
+
+# ============================================================
+# TEST 1
+# CREATE COUPON
+# ============================================================
 
 def test_create_coupon(
     client,
@@ -132,6 +162,11 @@ def test_create_coupon(
     assert data["status"] == "Active"
 
 
+# ============================================================
+# TEST 2
+# GET COUPONS
+# ============================================================
+
 def test_get_coupons(
     client,
     active_coupon_payload,
@@ -155,6 +190,11 @@ def test_get_coupons(
 
     assert data[0]["coupon_code"] == "SAVE10"
 
+
+# ============================================================
+# TEST 3
+# CREATE FIXED COUPON
+# ============================================================
 
 def test_create_fixed_coupon(client):
 
@@ -186,6 +226,11 @@ def test_create_fixed_coupon(client):
     assert data["discount_value"] == 50
 
 
+# ============================================================
+# TEST 4
+# DUPLICATE COUPON CODE
+# ============================================================
+
 def test_duplicate_coupon_code(
     client,
     active_coupon_payload,
@@ -210,6 +255,11 @@ def test_duplicate_coupon_code(
         == "Coupon code already exists"
     )
 
+
+# ============================================================
+# TEST 5
+# INVALID DISCOUNT TYPE
+# ============================================================
 
 def test_invalid_discount_type(client):
 
@@ -240,6 +290,11 @@ def test_invalid_discount_type(client):
     )
 
 
+# ============================================================
+# TEST 6
+# EXPIRY BEFORE START DATE
+# ============================================================
+
 def test_expiry_before_start_date(client):
 
     now = datetime.now(timezone.utc)
@@ -268,6 +323,11 @@ def test_expiry_before_start_date(client):
         == "Expiry date must be after start date"
     )
 
+
+# ============================================================
+# TEST 7
+# APPLY PERCENTAGE COUPON
+# ============================================================
 
 def test_apply_percentage_coupon(
     client,
@@ -300,6 +360,11 @@ def test_apply_percentage_coupon(
     assert data["discount_amount"] == 50
     assert data["final_amount"] == 450
 
+
+# ============================================================
+# TEST 8
+# APPLY FIXED COUPON
+# ============================================================
 
 def test_apply_fixed_coupon(
     client,
@@ -346,6 +411,11 @@ def test_apply_fixed_coupon(
     assert data["final_amount"] == 250
 
 
+# ============================================================
+# TEST 9
+# MAXIMUM DISCOUNT
+# ============================================================
+
 def test_percentage_coupon_maximum_discount(
     client,
     customer,
@@ -389,6 +459,11 @@ def test_percentage_coupon_maximum_discount(
     assert data["final_amount"] == 950
 
 
+# ============================================================
+# TEST 10
+# NON-EXISTENT COUPON
+# ============================================================
+
 def test_apply_nonexistent_coupon(
     client,
     customer,
@@ -410,6 +485,11 @@ def test_apply_nonexistent_coupon(
         == "Coupon not found"
     )
 
+
+# ============================================================
+# TEST 11
+# COUPON NOT ACTIVE YET
+# ============================================================
 
 def test_coupon_not_active_yet(
     client,
@@ -454,6 +534,11 @@ def test_coupon_not_active_yet(
     )
 
 
+# ============================================================
+# TEST 12
+# EXPIRED COUPON
+# ============================================================
+
 def test_expired_coupon(
     client,
     customer,
@@ -496,6 +581,11 @@ def test_expired_coupon(
         == "Coupon has expired"
     )
 
+
+# ============================================================
+# TEST 13
+# INACTIVE COUPON
+# ============================================================
 
 def test_inactive_coupon(
     client,
@@ -540,6 +630,11 @@ def test_inactive_coupon(
     )
 
 
+# ============================================================
+# TEST 14
+# MINIMUM ORDER VALUE
+# ============================================================
+
 def test_minimum_order_value_not_reached(
     client,
     customer,
@@ -569,6 +664,11 @@ def test_minimum_order_value_not_reached(
         == "Minimum order value is 100.0"
     )
 
+
+# ============================================================
+# TEST 15
+# COUPON CANNOT BE USED TWICE
+# ============================================================
 
 def test_coupon_cannot_be_used_twice_by_same_customer(
     client,
@@ -610,6 +710,11 @@ def test_coupon_cannot_be_used_twice_by_same_customer(
         == "Coupon already used by this customer"
     )
 
+
+# ============================================================
+# TEST 16
+# COUPON USAGE LIMIT
+# ============================================================
 
 def test_coupon_usage_limit_exceeded(
     client,
@@ -695,6 +800,11 @@ def test_coupon_usage_limit_exceeded(
     )
 
 
+# ============================================================
+# TEST 17
+# INVALID CUSTOMER ID
+# ============================================================
+
 def test_apply_coupon_with_invalid_customer_id(
     client,
     active_coupon_payload,
@@ -716,14 +826,15 @@ def test_apply_coupon_with_invalid_customer_id(
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 404
 
-    data = response.json()
+    assert response.json()["detail"] == "Customer not found"
 
-    assert data["coupon_code"] == "SAVE10"
-    assert data["discount_amount"] == 50
-    assert data["final_amount"] == 450
 
+# ============================================================
+# TEST 18
+# INVALID ORDER VALUE
+# ============================================================
 
 def test_coupon_invalid_order_value(
     client,
@@ -749,6 +860,11 @@ def test_coupon_invalid_order_value(
 
     assert response.status_code == 422
 
+
+# ============================================================
+# TEST 19
+# INVALID USAGE LIMIT
+# ============================================================
 
 def test_coupon_invalid_usage_limit(client):
 

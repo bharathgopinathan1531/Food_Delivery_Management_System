@@ -26,6 +26,7 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 
+
 TestingSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -354,7 +355,6 @@ def test_add_item_to_cart(client, customer, menu_item):
         },
     )
 
-    # POST /cart/items returns 201 Created
     assert response.status_code == 201
 
     data = response.json()
@@ -726,7 +726,9 @@ def test_get_cart_invalid_customer(client):
         "/cart?customer_id=99999"
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 404
+
+    assert response.json()["detail"] == "Customer not found"
 
 
 # ============================================================
@@ -747,5 +749,6 @@ def test_add_item_invalid_customer(
         },
     )
 
-    # Current Cart API creates a cart for the supplied customer_id.
-    assert response.status_code == 201
+    assert response.status_code == 404
+
+    assert response.json()["detail"] == "Customer not found"

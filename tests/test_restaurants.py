@@ -836,7 +836,8 @@ def test_delete_restaurant_as_admin(
         .first()
     )
 
-    assert deleted is None
+    assert deleted is not None
+    assert deleted.is_deleted is True
 
 
 def test_owner_cannot_delete_another_restaurant(

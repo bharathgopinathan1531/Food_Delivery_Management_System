@@ -20,6 +20,12 @@ def test_transaction_commit():
             )
         )
 
+        # Clean previous test data if the table already exists
+        db.execute(
+            text("DELETE FROM transaction_test")
+        )
+        db.commit()
+
         db.execute(
             text(
                 "INSERT INTO transaction_test (id, name) "
@@ -39,6 +45,10 @@ def test_transaction_commit():
         assert result == "Transaction Test"
 
     finally:
+        db.execute(
+            text("DROP TABLE IF EXISTS transaction_test")
+        )
+        db.commit()
         db.close()
 
 
@@ -60,6 +70,12 @@ def test_transaction_rollback():
 
         db.commit()
 
+        # Clean previous test data if the table already exists
+        db.execute(
+            text("DELETE FROM rollback_test")
+        )
+        db.commit()
+
         db.execute(
             text(
                 "INSERT INTO rollback_test (id, name) "
@@ -79,6 +95,10 @@ def test_transaction_rollback():
         assert result is None
 
     finally:
+        db.execute(
+            text("DROP TABLE IF EXISTS rollback_test")
+        )
+        db.commit()
         db.close()
 
 
@@ -98,6 +118,12 @@ def test_transaction_failure_is_recoverable():
             )
         )
 
+        db.commit()
+
+        # Clean previous test data if the table already exists
+        db.execute(
+            text("DELETE FROM recovery_test")
+        )
         db.commit()
 
         with pytest.raises(Exception):
@@ -139,4 +165,8 @@ def test_transaction_failure_is_recoverable():
         assert result == "Recovered"
 
     finally:
+        db.execute(
+            text("DROP TABLE IF EXISTS recovery_test")
+        )
+        db.commit()
         db.close()

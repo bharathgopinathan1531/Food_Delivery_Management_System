@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-dotenv
+email-validator
+pytest
+httpx
+alembic
+redis
+reportlab
+openpyxl
+celery

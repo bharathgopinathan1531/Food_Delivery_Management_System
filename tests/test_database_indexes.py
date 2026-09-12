@@ -1,12 +1,45 @@
 from sqlalchemy import inspect
 
-from app.database import engine
+from app.database import Base, engine
+
+# Import all models so SQLAlchemy registers
+# all tables and their indexes.
+from app.models import (
+    User,
+    Restaurant,
+    MenuItem,
+    RestaurantStaff,
+    Customer,
+    Address,
+    Cart,
+    CartItem,
+    Coupon,
+    CouponUsage,
+    Order,
+    OrderItem,
+    DeliveryPartner,
+    OrderTracking,
+    Payment,
+    CancellationHistory,
+    Refund,
+    Review,
+)
+
+
+def prepare_database():
+    """
+    Create all application tables before inspecting
+    database indexes.
+    """
+    Base.metadata.create_all(bind=engine)
 
 
 def test_database_indexes_exist():
     """
     Verify that database indexes are available.
     """
+
+    prepare_database()
 
     inspector = inspect(engine)
 
@@ -32,6 +65,8 @@ def test_primary_key_indexes_are_supported():
     Verify that the database exposes table metadata
     required for indexed primary keys.
     """
+
+    prepare_database()
 
     inspector = inspect(engine)
 
@@ -60,6 +95,8 @@ def test_index_metadata_is_readable():
     Verify that SQLAlchemy can inspect index metadata
     without errors.
     """
+
+    prepare_database()
 
     inspector = inspect(engine)
 
